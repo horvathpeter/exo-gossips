@@ -1,4 +1,4 @@
-package com.nespresso.recruitment.gossip;
+package me.guillaume.recruitment.gossip;
 
 import org.junit.Test;
 
