@@ -2,12 +2,12 @@ package me.guillaume.recruitment.gossip;
 
 import static me.guillaume.recruitment.gossip.Node.GossipType.KeepAndPass;
 
-class GossipBuilder {
+class StateBuilder {
 
     private final Gossips gossips;
     private final String gossip;
 
-    GossipBuilder(String gossip, Gossips gossips) {
+    StateBuilder(String gossip, Gossips gossips) {
         this.gossips = gossips;
         this.gossip = gossip;
     }

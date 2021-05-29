@@ -31,11 +31,11 @@ public class Gossips {
         return new ConnectionBuilder(from, this);
     }
 
-    public GossipBuilder say(String gossip) {
+    public StateBuilder say(String gossip) {
         if (gossip == null || gossip.trim().isEmpty()) {
             throw new IllegalArgumentException(String.format("Invalid gossip to say: %s", gossip));
         }
-        return new GossipBuilder(gossip, this);
+        return new StateBuilder(gossip, this);
     }
 
     public String ask(String name) {
