@@ -1,20 +1,17 @@
 package me.guillaume.recruitment.gossip;
 
-public class NodeBuilder {
+class ConnectionBuilder {
 
     private final Gossips gossips;
     private final Node from;
 
-    public NodeBuilder(Node from, Gossips gossips) {
+    ConnectionBuilder(Node from, Gossips gossips) {
         this.gossips = gossips;
         this.from = from;
     }
 
-    public Gossips to(String name) {
-        final Node to = gossips.getNodeByName(name);
-
-        from.setSuccessor(to);
-
+    Gossips to(String name) {
+        from.setSuccessor(gossips.getNodeByName(name));
         return gossips;
     }
 

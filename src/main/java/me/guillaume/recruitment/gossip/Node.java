@@ -2,10 +2,7 @@ package me.guillaume.recruitment.gossip;
 
 import java.util.*;
 
-import static me.guillaume.recruitment.gossip.Node.AddType.KeepAndPass;
-import static me.guillaume.recruitment.gossip.Node.AddType.KeepOnly;
-
-public class Node {
+class Node {
 
     private static final String HONORIFIC_DR = "Dr";
     private static final String HONORIFIC_AGENT = "Agent";
@@ -16,12 +13,12 @@ public class Node {
     private final String honorific;
     private final String name;
     private final State state = new State();
-    private boolean shouldDelay;
 
     private Node successor;
-    private boolean recentlyChanged = false;
+    private boolean recentlyChanged;
+    private boolean delayOneTurn;
 
-    public Node(String nameWithHonorific) {
+    Node(String nameWithHonorific) {
         final String[] nameWithHonorificSplit = nameWithHonorific.split(" ");
         if (nameWithHonorificSplit.length != 2) {
             throw new IllegalArgumentException(String.format("Invalid name with honorific provided: %s", nameWithHonorific));
@@ -29,152 +26,129 @@ public class Node {
 
         this.honorific = nameWithHonorificSplit[0];
         this.name = nameWithHonorificSplit[1];
-        this.shouldDelay = isProfessor(this);
+        this.delayOneTurn = isProfessor();
     }
 
-    public String getName() {
+    String getName() {
         return name;
     }
 
-    public void setSuccessor(Node successor) {
-        this.successor = successor;
+    String printState() {
+        return state.toString();
     }
 
-    public State getState() {
-        return state;
+    void addToState(String gossip, GossipType gossipType) {
+        if (isDoctor() || isAgent()) {
+            state.addGossipToState(gossip, gossipType);
+        } else {
+            state.clearAndAddToState(gossip, gossipType);
+        }
     }
 
-    public void addToState(String state, AddType addType) {
-        this.state.addToState(state, addType);
+    void clear() {
+        state.clear();
     }
 
-    public void clearAndAddToState(String state, AddType addType) {
-        this.state.clearAndAddToState(state, addType);
+    String getGossipToPass() {
+        return isGentleman() ? reverseGossip(state.getGossipToPass()) : state.getGossipToPass();
     }
 
-    public void setRecentlyChanged(boolean recentlyChanged) {
+    boolean isRecentlyChanged() {
+        return recentlyChanged;
+    }
+
+    void setRecentlyChanged(boolean recentlyChanged) {
         this.recentlyChanged = recentlyChanged;
     }
 
-    public void passStateToSuccessorIfPresent() {
-        if (successor.recentlyChanged) {
-            return;
-        }
-
-        if (isAgent(this)) {
-            state.clear();
-            return;
-        }
-
-        if (shouldDelay && isProfessor(this)) {
-            shouldDelay = false;
-            return;
-        }
-
-        final AddType addType = findAddType();
-        String stateToPass = state.getStateToPass();
-        if (isGentleman(this)) {
-            StringBuilder stringBuilder = new StringBuilder(stateToPass);
-            stringBuilder.reverse();
-            stateToPass = stringBuilder.toString();
-        }
-
-
-        if (!shouldDelay && (isDoctor(successor) || isAgent(successor))) {
-            successor.addToState(stateToPass, addType);
-        } else {
-            successor.clearAndAddToState(stateToPass, addType);
-        }
-
-        if (!isAgent(successor)) {
-            successor.setRecentlyChanged(true);
-        }
-
-        if (!isDoctor(this)) {
-            state.clear();
-        }
-
-        if (isGentleman(successor)) {
-            successor.successor = this;
-        }
+    boolean shouldDelayOneTurn() {
+        return delayOneTurn;
     }
 
-    private AddType findAddType() {
-        if (isLady(successor)) {
-            if (isDoctor(this)) {
-                return KeepAndPass;
-            } else
-                return KeepOnly;
-        }
-
-        return KeepAndPass;
+    void setDelayOneTurn(@SuppressWarnings("SameParameterValue") boolean delayOneTurn) {
+        this.delayOneTurn = delayOneTurn;
     }
 
-    private boolean isDoctor(Node node) {
-        return Objects.equals(node.honorific, HONORIFIC_DR);
+    boolean isDoctor() {
+        return Objects.equals(honorific, HONORIFIC_DR);
     }
 
-    private boolean isAgent(Node node) {
-        return Objects.equals(node.honorific, HONORIFIC_AGENT);
+    boolean isAgent() {
+        return Objects.equals(honorific, HONORIFIC_AGENT);
     }
 
-    private boolean isProfessor(Node node) {
-        return Objects.equals(node.honorific, HONORIFIC_PROFESSOR);
+    boolean isProfessor() {
+        return Objects.equals(honorific, HONORIFIC_PROFESSOR);
     }
 
-    private boolean isLady(Node node) {
-        return Objects.equals(node.honorific, HONORIFIC_LADY);
+    boolean isLady() {
+        return Objects.equals(honorific, HONORIFIC_LADY);
     }
 
-    private boolean isGentleman(Node node) {
-        return Objects.equals(node.honorific, HONORIFIC_SIR);
+    boolean isGentleman() {
+        return Objects.equals(honorific, HONORIFIC_SIR);
     }
 
-    public boolean isEligibleToPassState() {
-        return !state.sayingsToPass.isEmpty() && successor != null;
+    boolean isEligibleToPassState() {
+        return !state.gossipsToPass.isEmpty() && successor != null;
     }
 
-    enum AddType {
+    Node getSuccessor() {
+        return successor;
+    }
+
+    void setSuccessor(Node successor) {
+        this.successor = successor;
+    }
+
+    private String reverseGossip(String gossip) {
+        final StringBuilder stringBuilder = new StringBuilder(gossip);
+        stringBuilder.reverse();
+        return stringBuilder.toString();
+    }
+
+    enum GossipType {
         KeepAndPass,
         KeepOnly
     }
 
-    static class State {
-        private final List<String> sayingsToKeep = new ArrayList<>();
-        private final Queue<String> sayingsToPass = new ArrayDeque<>();
+    private static class State {
+        private final List<String> gossipsToKeep = new ArrayList<>();
+        private final Queue<String> gossipsToPass = new ArrayDeque<>();
 
         private void clear() {
-            sayingsToKeep.clear();
-            sayingsToPass.clear();
+            gossipsToKeep.clear();
+            gossipsToPass.clear();
         }
 
-        private String getStateToPass() {
-            return sayingsToPass.poll();
+        private String getGossipToPass() {
+            return gossipsToPass.poll();
         }
 
-        private void addToState(String saying, AddType addType) {
-            switch (addType) {
+        private void addGossipToState(String gossip, GossipType gossipType) {
+            gossipsToKeep.add(gossip); // always keep
+
+            switch (gossipType) {
                 case KeepAndPass:
-                    sayingsToKeep.add(saying);
-                    sayingsToPass.add(saying);
+                    gossipsToPass.add(gossip);
                     break;
                 case KeepOnly:
-                    sayingsToKeep.add(saying);
+                    // do nothing
                     break;
                 default:
-                    throw new UnsupportedOperationException();
+                    throw new UnsupportedOperationException(gossipType.toString());
             }
         }
 
-        private void clearAndAddToState(String saying, AddType addType) {
+        private void clearAndAddToState(String gossip, GossipType gossipType) {
             clear();
-            addToState(saying, addType);
+            addGossipToState(gossip, gossipType);
         }
 
         @Override
         public String toString() {
-            if (sayingsToKeep.isEmpty()) return "";
-            return sayingsToKeep.size() == 1 ? sayingsToKeep.get(0) : sayingsToKeep.toString().replace("[", "").replace("]", "");
+            if (gossipsToKeep.isEmpty()) return "";
+            return gossipsToKeep.size() == 1 ? gossipsToKeep.get(0) : gossipsToKeep.toString().replace("[", "").replace("]", "");
         }
     }
 }

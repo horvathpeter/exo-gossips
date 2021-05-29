@@ -2,20 +2,20 @@ package me.guillaume.recruitment.gossip;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
 public class Gossips {
 
     private final Map<String, Node> nodes;
 
-    public Gossips(String... people) {
-        if (people == null || people.length == 0) {
+    public Gossips(String... names) {
+        if (names == null || names.length == 0) {
             throw new IllegalArgumentException("Cannot create Gossips with no people");
         }
 
-        this.nodes = Arrays.stream(people)
+        this.nodes = Arrays.stream(names)
                 .map(Node::new)
                 .collect(toMap(
                         Node::getName,
@@ -23,44 +23,42 @@ public class Gossips {
                         (x, y) -> {
                             throw new IllegalStateException(String.format("Duplicate key %s", x));
                         },
-                        LinkedHashMap::new));
+                        LinkedHashMap::new)); // to maintain order
     }
 
-    // from should return a NodeBuilder which holds reference to Gossips, where will be a to() method, which will
-    // say with set the state of a Node
-    // when you call spread() you ask to pass the state to the successor node, it resets its own state
-    // use LinkedHashMap to preserve the order, indexed by name, value is Node and it holds a field of Node type as successor (optional)
-
-    public NodeBuilder from(String name) {
-        final Node from = nodes.get(name); // assert not null
-        return new NodeBuilder(from, this);
+    public ConnectionBuilder from(String name) {
+        final Node from = getNodeByName(name);
+        return new ConnectionBuilder(from, this);
     }
 
-    public SayingBuilder say(String saying) {
-        if (saying == null || saying.trim().isEmpty()) {
-            throw new IllegalArgumentException(String.format("Invalid gossip to say: %s", saying));
+    public GossipBuilder say(String gossip) {
+        if (gossip == null || gossip.trim().isEmpty()) {
+            throw new IllegalArgumentException(String.format("Invalid gossip to say: %s", gossip));
         }
-        return new SayingBuilder(saying, this);
+        return new GossipBuilder(gossip, this);
     }
 
     public String ask(String name) {
-        return getNodeByName(name).getState().toString();
+        return getNodeByName(name).printState();
     }
 
     public Node getNodeByName(String name) {
         return Optional.ofNullable(nodes.get(name))
-                .orElseThrow(() -> new IllegalArgumentException(name));
+                .orElseThrow(() -> new IllegalArgumentException(String.format("Non existing name: %s", name)));
     }
 
     public void spread() {
-        nodes.values().forEach(x -> x.setRecentlyChanged(false));
-
-        List<Node> nodesNonEmpty =
+        // we need to collect because we will be changing state, which would affect the Stream execution
+        final List<Node> nodesEligibleToPassState =
                 nodes.values().stream()
                         .filter(Node::isEligibleToPassState)
-                        .collect(Collectors.toList());
+                        .collect(toList());
 
-        nodesNonEmpty.forEach(Node::passStateToSuccessorIfPresent);
+        nodesEligibleToPassState
+                .forEach(node -> new GossipExecutor(node).passGossipToSuccessor());
+
+        nodes.values()
+                .forEach(node -> node.setRecentlyChanged(false));
     }
 
 }
