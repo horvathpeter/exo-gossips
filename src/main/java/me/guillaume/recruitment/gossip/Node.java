@@ -53,16 +53,36 @@ public class Node {
     }
 
     public void passStateToSuccessorIfPresent() {
-        if (successor.recentlyChanged) return;
-        if (Objects.equals(successor.honorific, HONORIFIC_DR)) {
+        if (successor.recentlyChanged) {
+            return;
+        }
+
+        if (isAgent(this)) {
+            state.clear();
+            return;
+        }
+
+        if (isDoctor(successor) || isAgent(successor)) {
             successor.addToState(state.getStateToPass());
         } else {
             successor.clearAndAddToState(state.getStateToPass());
         }
-        successor.setRecentlyChanged(true);
-        if (!Objects.equals(honorific, HONORIFIC_DR)){
+
+        if (!isAgent(successor)) {
+            successor.setRecentlyChanged(true);
+        }
+
+        if (!isDoctor(this)) {
             state.clear();
         }
+    }
+
+    private boolean isDoctor(Node node) {
+        return Objects.equals(node.honorific, HONORIFIC_DR);
+    }
+
+    private boolean isAgent(Node node) {
+        return Objects.equals(node.honorific, HONORIFIC_AGENT);
     }
 
     public boolean isEligibleToPassState() {
