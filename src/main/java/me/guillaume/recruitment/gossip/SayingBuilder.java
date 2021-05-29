@@ -1,5 +1,7 @@
 package me.guillaume.recruitment.gossip;
 
+import static me.guillaume.recruitment.gossip.Node.AddType.KeepAndPass;
+
 public class SayingBuilder {
 
     private final Gossips gossips;
@@ -13,6 +15,6 @@ public class SayingBuilder {
     public void to(String name) {
         final Node to = gossips.getNodeByName(name);
 
-        to.addToState(saying);
+        to.addToState(saying, KeepAndPass);
     }
 }

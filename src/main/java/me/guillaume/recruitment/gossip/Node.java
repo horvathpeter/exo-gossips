@@ -2,11 +2,15 @@ package me.guillaume.recruitment.gossip;
 
 import java.util.*;
 
+import static me.guillaume.recruitment.gossip.Node.AddType.KeepAndPass;
+import static me.guillaume.recruitment.gossip.Node.AddType.KeepOnly;
+
 public class Node {
 
     private static final String HONORIFIC_DR = "Dr";
     private static final String HONORIFIC_AGENT = "Agent";
     private static final String HONORIFIC_PROFESSOR = "Pr";
+    private static final String HONORIFIC_LADY = "Lady";
 
     private final String honorific;
     private final String name;
@@ -43,12 +47,12 @@ public class Node {
         return state;
     }
 
-    public void addToState(String state) {
-        this.state.addToState(state);
+    public void addToState(String state, AddType addType) {
+        this.state.addToState(state, addType);
     }
 
-    public void clearAndAddToState(String state) {
-        this.state.clearAndAddToState(state);
+    public void clearAndAddToState(String state, AddType addType) {
+        this.state.clearAndAddToState(state, addType);
     }
 
     public void setRecentlyChanged(boolean recentlyChanged) {
@@ -70,10 +74,12 @@ public class Node {
             return;
         }
 
+        final AddType addType = findAddType();
+
         if (!shouldDelay && (isDoctor(successor) || isAgent(successor))) {
-            successor.addToState(state.getStateToPass());
+            successor.addToState(state.getStateToPass(), addType);
         } else {
-            successor.clearAndAddToState(state.getStateToPass());
+            successor.clearAndAddToState(state.getStateToPass(), addType);
         }
 
         if (!isAgent(successor)) {
@@ -83,6 +89,17 @@ public class Node {
         if (!isDoctor(this)) {
             state.clear();
         }
+    }
+
+    private AddType findAddType() {
+        if (isLady(successor)) {
+            if (isDoctor(this)) {
+                return KeepAndPass;
+            } else
+                return KeepOnly;
+        }
+
+        return KeepAndPass;
     }
 
     private boolean isDoctor(Node node) {
@@ -97,8 +114,17 @@ public class Node {
         return Objects.equals(node.honorific, HONORIFIC_PROFESSOR);
     }
 
+    private boolean isLady(Node node) {
+        return Objects.equals(node.honorific, HONORIFIC_LADY);
+    }
+
     public boolean isEligibleToPassState() {
-        return !Objects.equals(state.toString(), "") && successor != null;
+        return !state.sayingsToPass.isEmpty() && successor != null;
+    }
+
+    enum AddType {
+        KeepAndPass,
+        KeepOnly
     }
 
     static class State {
@@ -114,14 +140,23 @@ public class Node {
             return sayingsToPass.poll();
         }
 
-        private void addToState(String saying) {
-            sayingsToKeep.add(saying);
-            sayingsToPass.add(saying);
+        private void addToState(String saying, AddType addType) {
+            switch (addType) {
+                case KeepAndPass:
+                    sayingsToKeep.add(saying);
+                    sayingsToPass.add(saying);
+                    break;
+                case KeepOnly:
+                    sayingsToKeep.add(saying);
+                    break;
+                default:
+                    throw new UnsupportedOperationException();
+            }
         }
 
-        private void clearAndAddToState(String saying) {
+        private void clearAndAddToState(String saying, AddType addType) {
             clear();
-            addToState(saying);
+            addToState(saying, addType);
         }
 
         @Override
