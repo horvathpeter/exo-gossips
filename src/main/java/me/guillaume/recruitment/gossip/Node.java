@@ -11,6 +11,7 @@ public class Node {
     private static final String HONORIFIC_AGENT = "Agent";
     private static final String HONORIFIC_PROFESSOR = "Pr";
     private static final String HONORIFIC_LADY = "Lady";
+    private static final String HONORIFIC_SIR = "Sir";
 
     private final String honorific;
     private final String name;
@@ -29,10 +30,6 @@ public class Node {
         this.honorific = nameWithHonorificSplit[0];
         this.name = nameWithHonorificSplit[1];
         this.shouldDelay = isProfessor(this);
-    }
-
-    public String getHonorific() {
-        return honorific;
     }
 
     public String getName() {
@@ -75,11 +72,18 @@ public class Node {
         }
 
         final AddType addType = findAddType();
+        String stateToPass = state.getStateToPass();
+        if (isGentleman(this)) {
+            StringBuilder stringBuilder = new StringBuilder(stateToPass);
+            stringBuilder.reverse();
+            stateToPass = stringBuilder.toString();
+        }
+
 
         if (!shouldDelay && (isDoctor(successor) || isAgent(successor))) {
-            successor.addToState(state.getStateToPass(), addType);
+            successor.addToState(stateToPass, addType);
         } else {
-            successor.clearAndAddToState(state.getStateToPass(), addType);
+            successor.clearAndAddToState(stateToPass, addType);
         }
 
         if (!isAgent(successor)) {
@@ -88,6 +92,10 @@ public class Node {
 
         if (!isDoctor(this)) {
             state.clear();
+        }
+
+        if (isGentleman(successor)) {
+            successor.successor = this;
         }
     }
 
@@ -116,6 +124,10 @@ public class Node {
 
     private boolean isLady(Node node) {
         return Objects.equals(node.honorific, HONORIFIC_LADY);
+    }
+
+    private boolean isGentleman(Node node) {
+        return Objects.equals(node.honorific, HONORIFIC_SIR);
     }
 
     public boolean isEligibleToPassState() {
