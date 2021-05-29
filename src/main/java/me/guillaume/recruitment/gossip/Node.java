@@ -6,10 +6,12 @@ public class Node {
 
     private static final String HONORIFIC_DR = "Dr";
     private static final String HONORIFIC_AGENT = "Agent";
+    private static final String HONORIFIC_PROFESSOR = "Pr";
 
     private final String honorific;
     private final String name;
     private final State state = new State();
+    private boolean shouldDelay;
 
     private Node successor;
     private boolean recentlyChanged = false;
@@ -22,6 +24,7 @@ public class Node {
 
         this.honorific = nameWithHonorificSplit[0];
         this.name = nameWithHonorificSplit[1];
+        this.shouldDelay = isProfessor(this);
     }
 
     public String getHonorific() {
@@ -62,7 +65,12 @@ public class Node {
             return;
         }
 
-        if (isDoctor(successor) || isAgent(successor)) {
+        if (shouldDelay && isProfessor(this)) {
+            shouldDelay = false;
+            return;
+        }
+
+        if (!shouldDelay && (isDoctor(successor) || isAgent(successor))) {
             successor.addToState(state.getStateToPass());
         } else {
             successor.clearAndAddToState(state.getStateToPass());
@@ -83,6 +91,10 @@ public class Node {
 
     private boolean isAgent(Node node) {
         return Objects.equals(node.honorific, HONORIFIC_AGENT);
+    }
+
+    private boolean isProfessor(Node node) {
+        return Objects.equals(node.honorific, HONORIFIC_PROFESSOR);
     }
 
     public boolean isEligibleToPassState() {
